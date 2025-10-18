@@ -28,7 +28,7 @@ const model_provider = {
         content: userInput
       }
     ];
-    
+
     const response = await fetch('http://127.0.0.1:11434/api/chat', {
       method: 'POST',
       headers: {
@@ -40,4 +40,12 @@ const model_provider = {
         stream: false
       })
     });
+```
+
+Test the above api:
+
+```
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"userInput": "What are my rights as a tenant?"}'
 ```
