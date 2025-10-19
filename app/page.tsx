@@ -1,103 +1,184 @@
-import Image from "next/image";
+"use client"
+
+import { Send, Scale, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AIResponse } from "@/components/AI-response";
+import { useState } from "react";
+
+interface Message {
+  id: string;
+  content: string;
+  sender: "user" | "ai";
+  timestamp: Date;
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "welcome",
+      content:
+        "Hello! I'm your Digital Legal Assistant. I can help you with legal questions, document review, and general legal guidance. You can type your questions or use the microphone button to record voice messages. How can I assist you today?",
+      sender: "ai",
+      timestamp: new Date(),
+    },
+  ]);
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim()) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      sender: "user",
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: data.response,
+        sender: "ai",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content:
+          "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+        sender: "ai",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="border-b bg-card shadow-sm">
+        <div>
+          <h1 className="text-xl font-bold">AI Legal Advisor</h1>
+          <p className="text-sm text-muted-foreground">
+            Digital Legal Assistant
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </header>
+
+      {/* Messages */}
+      <div className="flex-1 container mx-auto px-4 py-6">
+        <div className="h-[calc(100vh-200px)]">
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex gap-3",
+                  message.sender === "user" ? "justify-end" : "justify-start"
+                )}
+              >
+                {message.sender === "ai" && (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 flex-shrink-0">
+                    <Scale className="h-4 w-4 text-accent" />
+                  </div>
+                )}
+
+                <div
+                  className={cn(
+                    "max-w-[80%] rounded-lg px-4 py-3",
+                    message.sender === "user"
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-muted"
+                  )}
+                >
+                  {message.sender === "ai" ? (
+                    <AIResponse content={message.content} className="text-sm" />
+                  ) : (
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                  )}
+                </div>
+
+                {message.sender === "user" && (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex gap-3 justify-start">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 flex-shrink-0">
+                  <Scale className="h-4 w-4 text-accent" />
+                </div>
+                <div className="bg-muted rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-accent rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-100"></div>
+                      <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-200"></div>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      generating response
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div />
+          </div>
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="border-t bg-card">
+        <div className="container mx-auto px-4 py-4">
+          <div className="max-w-4xl mx-auto space-y-4">
+            {/* Input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                // className="hidden"
+                disabled={isLoading}
+              />
+
+              <button onClick={handleSendMessage}>
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
