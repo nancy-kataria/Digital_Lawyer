@@ -23,7 +23,7 @@ export default function Home() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [recordingText, setRecordingText] = useState("")
   // https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis
-  const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null)
+  // const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null)
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -34,6 +34,61 @@ export default function Home() {
       timestamp: new Date(),
     },
   ]);
+
+  useEffect(() => {
+    // Check if we're running in a browser environment (not server-side rendering)
+    if (typeof window !== "undefined") {
+      // Get the Speech Recognition API - try standard first, then webkit prefixed version for Safari
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (SpeechRecognition) {
+        // Creating a new speech recognition instance
+        const recognitionInstance = new SpeechRecognition()
+
+        // speech recognition settings
+        recognitionInstance.continuous = true //Keep listening until manually stopped
+        recognitionInstance.interimResults = true // Return partial results as user speak
+        recognitionInstance.lang = "en-US" // Set language to English (US)
+
+        recognitionInstance.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          let finalTranscript = ""
+          let interimTranscript = ""
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript
+
+            // Separate final results (completed words) from interim results (in-progress words)
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript
+            } else {
+              interimTranscript += transcript
+            }
+          }
+
+          const fullTranscript = finalTranscript + interimTranscript
+          setRecordingText(fullTranscript) // Show live transcription to user
+
+          if (finalTranscript) {
+            setInputValue((prev) => prev + finalTranscript)
+          }
+        }
+
+        // Handle when speech recognition stops
+        recognitionInstance.onend = () => {
+          setIsRecording(false)
+          setRecordingText("")
+        }
+
+        recognitionInstance.onerror = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          console.error("Speech recognition error:", event.error)
+          setIsRecording(false)
+          setRecordingText("")
+        }
+
+        // Store the configured recognition instance in state
+        setRecognition(recognitionInstance)
+      }
+    }
+  }, []) // Removed dependencies to avoid stale closure issues
 
   const toggleRecording = async () => {
     if (!recognition) {
