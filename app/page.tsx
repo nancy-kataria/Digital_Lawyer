@@ -1,9 +1,11 @@
 "use client"
 
-import { Send, Scale, User } from "lucide-react";
+import { Send, Scale, User,  Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIResponse } from "@/components/AI-response";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/UI/Button"
+import { Input } from "@/components/UI/Input"
 
 interface Message {
   id: string;
@@ -15,6 +17,13 @@ interface Message {
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false)
+  const [recognition, setRecognition] = useState<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
+  // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const [recordingText, setRecordingText] = useState("")
+  // https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis
+  const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null)
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -25,6 +34,41 @@ export default function Home() {
       timestamp: new Date(),
     },
   ]);
+
+  const toggleRecording = async () => {
+    if (!recognition) {
+      alert("Speech recognition is not supported in your browser.")
+      return
+    }
+
+    if (isRecording) {
+      // Stop recording
+      recognition.stop()
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop()
+      }
+      setIsRecording(false)
+    } else {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const recorder = new MediaRecorder(stream)
+        setMediaRecorder(recorder)
+
+        recorder.start()
+        recognition.start()
+        setIsRecording(true)
+        setRecordingText("")
+
+        recorder.onstop = () => {
+          stream.getTracks().forEach((track) => track.stop())
+        }
+      } catch (error) {
+        console.error("Error accessing microphone:", error)
+        alert("Unable to access microphone. Please check your permissions.")
+      }
+    }
+  }
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -79,6 +123,16 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+  /**
+   * Enabling enter key
+   */
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault()
+      handleSendMessage()
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -162,19 +216,42 @@ export default function Home() {
       <div className="border-t bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-4xl mx-auto space-y-4">
+            {isRecording && (
+              <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <p className="text-sm text-red-700">
+                  Recording... {recordingText && `"${recordingText}"`}
+                  <span className="block text-xs mt-1">Click the microphone again to stop recording</span>
+                </p>
+              </div>
+            )}
             {/* Input */}
             <div className="flex gap-2">
-              <input
-                type="text"
+              <Button
+                variant={isRecording ? "destructive" : "outline"}
+                size="sm"
+                onClick={toggleRecording}
+                className="flex-shrink-0"
+                disabled={isLoading}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+
+              <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                // className="hidden"
-                disabled={isLoading}
+                onKeyPress={handleKeyPress}
+                placeholder={isRecording ? "Recording audio..." : "Ask your legal question..."}
+                className="flex-1"
+                disabled={isLoading} // Allow editing while recording
               />
 
-              <button onClick={handleSendMessage}>
+              <Button
+                onClick={handleSendMessage}
+                disabled={isLoading || !inputValue.trim()}
+              >
                 <Send className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
