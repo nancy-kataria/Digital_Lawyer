@@ -6,6 +6,7 @@ import { AIResponse } from "@/components/AI-response";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/UI/Button"
 import { Input } from "@/components/UI/Input"
+import { ScrollArea } from "@/components/UI/Scroll-Area"
 
 interface Message {
   id: string;
@@ -206,7 +207,7 @@ export default function Home() {
 
       {/* Messages */}
       <div className="flex-1 container mx-auto px-4 py-6">
-        <div className="h-[calc(100vh-200px)]">
+        <ScrollArea className="h-[calc(100vh-200px)]">
           <div className="space-y-4 max-w-4xl mx-auto">
             {messages.map((message) => (
               <div
@@ -267,7 +268,7 @@ export default function Home() {
 
             <div />
           </div>
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Input Area */}
