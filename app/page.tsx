@@ -1,6 +1,6 @@
 "use client"
 
-import { Send, Scale, User,  Mic, MicOff } from "lucide-react";
+import { Send, Scale, User,  Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIResponse } from "@/components/AI-response";
 import { useEffect, useState } from "react";
@@ -23,8 +23,9 @@ export default function Home() {
   // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [recordingText, setRecordingText] = useState("")
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null)
   // https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis
-  // const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null)
+  const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null)
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -40,6 +41,7 @@ export default function Home() {
     // Check if we're running in a browser environment (not server-side rendering)
     if (typeof window !== "undefined") {
       // Get the Speech Recognition API - try standard first, then webkit prefixed version for Safari
+      // https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       if (SpeechRecognition) {
         // Creating a new speech recognition instance
@@ -86,6 +88,10 @@ export default function Home() {
         }
         // Store the configured recognition instance in state
         setRecognition(recognitionInstance)
+      }
+
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        setSpeechSynthesis(window.speechSynthesis)
       }
     }
   }, []) // Removed dependencies to avoid stale closure issues
@@ -183,6 +189,44 @@ export default function Home() {
     }
   };
 
+  const handleSpeakMessage = (messageId: string, content: string) => {
+    if (!speechSynthesis) {
+      alert("Text-to-speech is not supported in your browser.")
+      return
+    }
+
+    // If currently speaking this message, stop it
+    if (speakingMessageId === messageId) {
+      speechSynthesis.cancel()
+      setSpeakingMessageId(null)
+      return
+    }
+
+    // Stop any current speech
+    speechSynthesis.cancel()
+
+    // Create and configure speech utterance
+    const utterance = new SpeechSynthesisUtterance(content)
+    utterance.rate = 0.9
+    utterance.pitch = 1
+    utterance.volume = 0.8
+
+    utterance.onstart = () => {
+      setSpeakingMessageId(messageId)
+    }
+
+    utterance.onend = () => {
+      setSpeakingMessageId(null)
+    }
+
+    utterance.onerror = () => {
+      setSpeakingMessageId(null)
+    }
+
+    // Start speaking
+    speechSynthesis.speak(utterance)
+  }
+
   /**
    * Enabling enter key
    */
@@ -231,6 +275,24 @@ export default function Home() {
                       : "bg-muted"
                   )}
                 >
+                  {message.sender === "ai" && (
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSpeakMessage(message.id, message.content)}
+                        className="h-6 w-6 p-0 hover:bg-accent/20"
+                        disabled={!speechSynthesis}
+                      >
+                        {speakingMessageId === message.id ? (
+                          <VolumeX className="h-3 w-3" />
+                        ) : (
+                          <Volume2 className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                   {message.sender === "ai" ? (
                     <AIResponse content={message.content} className="text-sm" />
                   ) : (
