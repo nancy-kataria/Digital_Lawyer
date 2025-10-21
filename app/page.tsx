@@ -83,7 +83,6 @@ export default function Home() {
           setIsRecording(false)
           setRecordingText("")
         }
-
         // Store the configured recognition instance in state
         setRecognition(recognitionInstance)
       }
@@ -128,6 +127,8 @@ export default function Home() {
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
+    const currentInput = inputValue
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
@@ -138,6 +139,7 @@ export default function Home() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
+    setIsRecording(false)
 
     try {
       const response = await fetch("/api/chat", {
@@ -146,7 +148,7 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputValue,
+          userInput: currentInput,
         }),
       });
 
@@ -162,7 +164,8 @@ export default function Home() {
         sender: "ai",
         timestamp: new Date(),
       };
-
+      
+      // to display all messages
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
       console.error("Error generating AI response:", error);
