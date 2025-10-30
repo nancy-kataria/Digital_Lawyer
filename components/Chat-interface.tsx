@@ -1,6 +1,6 @@
 "use client"
 
-import { Paperclip, Send, Scale, User,  Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Paperclip, Send, Scale, User,  Mic, MicOff, Volume2, VolumeX, ArrowLeft, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIResponse } from "@/components/AI-response";
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +17,11 @@ interface Message {
   isAudio?: boolean
 }
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  onBack: () => void
+}
+
+export function ChatInterface({ onBack }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([])
@@ -268,11 +272,19 @@ export function ChatInterface() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
-        <div>
-          <h1 className="text-xl font-bold">AI Legal Advisor</h1>
-          <p className="text-sm text-muted-foreground">
-            Digital Legal Assistant
-          </p>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
+              <Bot className="h-6 w-6 text-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">AI Legal Advisor</h1>
+              <p className="text-sm text-muted-foreground">Digital Legal Assistant</p>
+            </div>
+          </div>
         </div>
       </header>
 
