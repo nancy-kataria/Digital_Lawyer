@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { PermissionsScreen } from "@/components/Permission-screen"
+import { DisclaimerScreen } from "@/components/Disclaimer-screen"
 import { HomeScreen } from "@/components/Home-screen"
 
-type AppState = "home"
+type AppState = "permissions" | "disclaimer" | "home"
 
 export function AppWrapper() {
-  const [appState, setAppState] = useState<AppState>("home")
+  const [appState, setAppState] = useState<AppState>("permissions")
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -18,6 +20,8 @@ export function AppWrapper() {
           const disclaimerAccepted = localStorage.getItem("digital-lawyer-disclaimer-accepted")
           if (disclaimerAccepted) {
             setAppState("home")
+          } else {
+            setAppState("disclaimer")
           }
         }
       } catch (error) {
@@ -28,10 +32,23 @@ export function AppWrapper() {
     checkPermissions()
   }, [])
 
+  const handlePermissionsGranted = () => {
+    setAppState("disclaimer")
+  }
+
+  const handleDisclaimerAccepted = () => {
+    localStorage.setItem("digital-lawyer-disclaimer-accepted", "true")
+    setAppState("home")
+  }
+
   switch (appState) {
+    case "permissions":
+      return <PermissionsScreen onPermissionsGranted={handlePermissionsGranted} />
+    case "disclaimer":
+      return <DisclaimerScreen onAccept={handleDisclaimerAccepted} />
     case "home":
       return <HomeScreen />
     default:
-      return <HomeScreen />
+      return <PermissionsScreen onPermissionsGranted={handlePermissionsGranted} />
   }
 }
