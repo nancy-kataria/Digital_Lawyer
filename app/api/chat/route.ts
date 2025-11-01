@@ -1,88 +1,99 @@
 import { NextRequest, NextResponse } from "next/server";
-
-export type ModelProvider = "ollama-local";
-
-export interface ModelConfig {
-  provider: ModelProvider;
-  textModel: string;
-  visionModel: string;
-  apiUrl?: string;
-  description: string;
-}
-
-export interface ProviderConfig {
-  [key: string]: ModelConfig;
-}
-
-export interface ModelMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-  images?: string[]; // base64 encoded images
-}
+import { orchestrateResponse, checkModelAvailability } from "@/models/model-orchestrator";
+import { ImageData, isValidImageFormat } from "@/lib/image-utils";
+import { getModelConfig, isProviderConfigured } from "@/models/model-config";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userInput } = await request.json();
-
-    // check if the text is a string
-    if (!userInput || typeof userInput !== "string") {
+    const { userInput, images, attachments } = await request.json();
+    
+    if (!userInput || typeof userInput !== 'string') {
       return NextResponse.json(
         { success: false, error: "User input is required" },
         { status: 400 }
       );
     }
-
-    const model_provider = {
-        provider: "ollama-local",
-        textModel: "gemma3:4b",
-        visionModel: "llava:7b",
-        description: "Local Ollama instance",
+    
+    const processedImages: ImageData[] = [];
+    if (images && Array.isArray(images)) {
+      for (const imageData of images) {
+        if (!isValidImageFormat(imageData.mimeType)) {
+          console.warn(`Unsupported image format: ${imageData.mimeType}`);
+          continue;
+        }
+        processedImages.push(imageData);
       }
-
-    // promt according to the legal assistance
-    const systemPrompt = "You are a helpful legal assistant AI. Provide general legal information and guidance, but always remind users to consult with a qualified attorney for specific legal advice. Be helpful, accurate, and professional. Please limit your responses to 2 or 3 paragraphs.";
-
-    const messages: ModelMessage[] = [
-      {
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        role: "user", 
-        content: userInput
-      }
-    ];
-
-    // fetching response using ollama
-    const response = await fetch('http://127.0.0.1:11434/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model_provider.textModel,
-        messages: messages,
-        stream: false
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status}`);
     }
-
-    const data = await response.json();
+    
+    const otherAttachments = attachments || [];
+    
+    // Check model configuration and availability
+    const config = getModelConfig();
+    console.log(`API: Using provider ${config.provider}`);
+    
+    if (!isProviderConfigured(config)) {
+      console.error(`API: Provider ${config.provider} is not configured`);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `${config.provider} provider is not properly configured. Please check your API keys and environment variables.` 
+        },
+        { status: 503 }
+      );
+    }
+    
+    const modelCheck = await checkModelAvailability();
+    if (modelCheck.errors.length > 0) {
+      console.warn("Model availability issues:", modelCheck.errors);
+      if (!modelCheck.gemma && !modelCheck.llava) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `No models available. Issues: ${modelCheck.errors.join(', ')}` 
+          },
+          { status: 503 }
+        );
+      }
+    
+      if (processedImages.length > 0 && !modelCheck.llava) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Vision model not available for image analysis. Issues: ${modelCheck.errors.join(', ')}` 
+          },
+          { status: 503 }
+        );
+      }
+    }
+    
+    const result = await orchestrateResponse(
+      userInput,
+      processedImages,
+      otherAttachments
+    );
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: result.error || "Failed to generate response" 
+        },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       success: true,
-      response: data.message.content
+      response: result.response,
+      model_used: result.model_used
     });
-
+    
   } catch (error) {
     console.error("Error generating AI response:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to generate AI response",
+      { 
+        success: false, 
+        error: "Failed to generate AI response" 
       },
       { status: 500 }
     );
