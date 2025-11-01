@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/UI/Button"
 import { Input } from "@/components/UI/Input"
 import { ScrollArea } from "@/components/UI/Scroll-Area"
+import { generateLegalResponse } from "@/models/generate-response"
 
 interface Message {
   id: string;
@@ -150,9 +151,8 @@ export function ChatInterface({ onBack }: ChatInterfaceProps) {
   }
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()&& attachments.length === 0) return;
+    if (!inputValue.trim() && attachments.length === 0) return
 
-    const currentInput = inputValue
     const isVoiceMessage = recordingText.length > 0 || inputValue.includes(recordingText)
 
     const userMessage: Message = {
@@ -162,52 +162,36 @@ export function ChatInterface({ onBack }: ChatInterfaceProps) {
       timestamp: new Date(),
       attachments: attachments.length > 0 ? [...attachments] : undefined,
       isAudio: isVoiceMessage, // Mark as audio message if it came from voice input
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
+    setMessages((prev) => [...prev, userMessage])
+    setInputValue("")
     setAttachments([])
-    setIsLoading(true);
-    setIsRecording(false)
+    setRecordingText("") // Clear recording text after sending
+    setIsLoading(true)
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userInput: currentInput,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const aiResponse = await generateLegalResponse(inputValue, attachments)
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response,
+        content: aiResponse,
         sender: "ai",
         timestamp: new Date(),
-      };
-      
-      // to display all messages
-      setMessages((prev) => [...prev, aiMessage]);
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
     } catch (error) {
-      console.error("Error generating AI response:", error);
+      console.error("Error generating AI response:", error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content:
-          "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+        content: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
         sender: "ai",
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   };
 
