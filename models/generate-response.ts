@@ -1,29 +1,36 @@
 import { processAttachments, ImageData } from "../lib/image-utils";
 
-export async function generateLegalResponse(userInput: string, attachments?: File[]): Promise<string> {
+export async function generateLegalResponse(
+  userInput: string,
+  attachments?: File[],
+  conversationHistory?: { role: string; content: string }[]
+): Promise<string> {
   const startTime = Date.now();
 
   try {
     let images: ImageData[] = [];
     let otherFiles: { name: string; size: number; type: string }[] = [];
-    
+
     if (attachments && attachments.length > 0) {
       const processed = await processAttachments(attachments);
       images = processed.images;
       otherFiles = processed.otherFiles;
-      
-      console.log(`Processed ${images.length} image(s) and ${otherFiles.length} other file(s)`);
+
+      console.log(
+        `Processed ${images.length} image(s) and ${otherFiles.length} other file(s)`
+      );
     }
-    
-    const response = await fetch('/api/chat', {
-      method: 'POST',
+
+    const response = await fetch("/api/chat", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         userInput,
         images,
         attachments: otherFiles,
+        messages: conversationHistory,
       }),
     });
 
@@ -32,16 +39,20 @@ export async function generateLegalResponse(userInput: string, attachments?: Fil
     }
 
     const data = await response.json();
-    
+
     if (!data.success) {
-      throw new Error(data.error || 'Unknown error occurred');
+      throw new Error(data.error || "Unknown error occurred");
     }
 
     const endTime = Date.now();
     const executionTime = (endTime - startTime) / 1000;
-    
-    console.log(`AI Response generated in ${executionTime.toFixed(2)} seconds using ${data.model_used || 'unknown model'}`);
-    
+
+    console.log(
+      `AI Response generated in ${executionTime.toFixed(2)} seconds using ${
+        data.model_used || "unknown model"
+      }`
+    );
+
     return data.response;
   } catch (error) {
     console.error("Error generating AI response:", error);

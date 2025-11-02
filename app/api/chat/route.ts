@@ -5,7 +5,7 @@ import { getModelConfig, isProviderConfigured } from "@/models/model-config";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userInput, images, attachments } = await request.json();
+    const { userInput, images, attachments, messages } = await request.json();
     
     if (!userInput || typeof userInput !== 'string') {
       return NextResponse.json(
@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
     const result = await orchestrateResponse(
       userInput,
       processedImages,
-      otherAttachments
+      otherAttachments,
+      messages
     );
     
     if (!result.success) {

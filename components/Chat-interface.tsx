@@ -171,7 +171,15 @@ export function ChatInterface({ onBack }: ChatInterfaceProps) {
     setIsLoading(true)
 
     try {
-      const aiResponse = await generateLegalResponse(inputValue, attachments)
+      // Build conversation history (exclude welcome message)
+      const conversationHistory = messages
+        .filter(msg => msg.id !== "welcome")
+        .map(msg => ({
+          role: msg.sender === "user" ? "user" : "assistant",
+          content: msg.content
+      }));
+
+      const aiResponse = await generateLegalResponse(inputValue, attachments, conversationHistory)
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),

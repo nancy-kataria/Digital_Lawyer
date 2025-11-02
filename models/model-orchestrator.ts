@@ -47,10 +47,11 @@ export async function analyzeImageWithProvider(
 export async function generateResponseWithProvider(
   userInput: string, 
   imageAnalysis?: string,
-  attachmentInfo?: { name: string; size: number; type: string }[]
+  attachmentInfo?: { name: string; size: number; type: string }[],
+  conversationHistory?: ModelMessage[]
 ): Promise<string> {
   try {
-    let systemPrompt = "You are a helpful legal assistant AI. Provide general legal information and guidance, but always remind users to consult with a qualified attorney for specific legal advice. Be helpful, accurate, and professional. Please limit your responses to 2 or 3 paragraphs.";
+    let systemPrompt = "You are a helpful legal assistant AI. Provide general legal information and guidance, but always remind users to consult with a qualified attorney for specific legal advice. Be helpful, accurate, and professional.";
 
     let userMessage = userInput;
     
@@ -67,12 +68,19 @@ export async function generateResponseWithProvider(
       {
         role: "system",
         content: systemPrompt
-      },
-      {
-        role: "user", 
-        content: userMessage
       }
     ];
+
+    // Add conversation history if provided
+    if (conversationHistory && conversationHistory.length > 0) {
+      messages.push(...conversationHistory);
+    }
+
+    // Add current user message
+    messages.push({
+      role: "user", 
+      content: userMessage
+    });
 
     const provider = await getProvider();
     const result = await provider.generateText(messages);
@@ -94,7 +102,8 @@ export const generateResponseWithGemma = generateResponseWithProvider;
 export async function orchestrateResponse(
   userInput: string,
   images: ImageData[],
-  otherAttachments: { name: string; size: number; type: string }[]
+  otherAttachments: { name: string; size: number; type: string }[],
+  conversationHistory?: ModelMessage[]
 ): Promise<ModelResponse> {
   try {
     const provider = await getProvider();
@@ -118,7 +127,8 @@ export async function orchestrateResponse(
     const finalResponse = await generateResponseWithProvider(
       userInput, 
       imageAnalysis || undefined,
-      otherAttachments.length > 0 ? otherAttachments : undefined
+      otherAttachments.length > 0 ? otherAttachments : undefined,
+      conversationHistory
     );
     
     const modelUsed = images.length > 0 ? 
