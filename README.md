@@ -1,6 +1,14 @@
 # Digital Lawyer
 
-Digital Lawyer is a privacy-first AI legal assistant designed to provide legal guidance while protecting your sensitive information. Unlike cloud-based AI services that may store and analyze your conversations, Digital Lawyer runs entirely on your device using local AI models.
+An offline-first AI legal assistant that runs entirely on your device.
+
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Ollama](https://img.shields.io/badge/Ollama-Local%20AI-green?logo=ollama)](https://ollama.ai/)
+
+## Overview
+
+Digital Lawyer is a **privacy-first AI legal assistant** designed to provide legal guidance while protecting your sensitive information. Unlike cloud-based AI services that may store and analyze your conversations, Digital Lawyer runs entirely on your device using local AI models.
 
 ## 🚀 Quick Start
 
@@ -45,7 +53,7 @@ Digital Lawyer is a privacy-first AI legal assistant designed to provide legal g
 
 ## Basic Text Generation:
 
-Provider: Ollama
+Provider: Ollama, 
 Model: Gemma3n:4b
 
 ```
