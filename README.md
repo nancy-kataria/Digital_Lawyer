@@ -2,6 +2,46 @@
 
 Digital Lawyer is a privacy-first AI legal assistant designed to provide legal guidance while protecting your sensitive information. Unlike cloud-based AI services that may store and analyze your conversations, Digital Lawyer runs entirely on your device using local AI models.
 
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Ollama** installed and running ([Download here](https://ollama.ai/))
+- **4GB+ RAM** recommended for AI models
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/nancy-kataria/digital-lawyer.git
+   cd digital-lawyer
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up AI models**
+   ```bash
+   # Install required Ollama models
+   ollama pull gemma3:4b
+   ollama pull llava:7b
+   
+   # Verify setup
+   npm run setup-models
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   ```
+   http://localhost:3000
+   ```
+
 
 ## Basic Text Generation:
 
