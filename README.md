@@ -49,3 +49,19 @@ curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"userInput": "What are my rights as a tenant?"}'
 ```
+
+## AI Models
+
+### Text Generation: Gemma 3:4b
+- **Purpose**: Legal reasoning and response generation
+- **Capabilities**: 
+  - Legal document analysis
+  - Contract interpretation
+  - Legal advice and guidance
+  - Legal research assistance
+
+### Vision Analysis: LLaVA 7b
+- **Purpose**: Document and image understanding
+- **Capabilities**:
+  - Contract and legal document OCR
+  - Image-based evidence analysis
