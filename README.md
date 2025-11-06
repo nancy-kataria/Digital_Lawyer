@@ -65,3 +65,26 @@ curl -X POST http://localhost:3000/api/chat \
 - **Capabilities**:
   - Contract and legal document OCR
   - Image-based evidence analysis
+
+## System Requirements
+
+### Minimum Requirements
+- **RAM**: 8GB (models use ~7GB)
+- **Storage**: 10GB free space
+- **CPU**: Multi-core processor (Intel/AMD/Apple Silicon)
+- **OS**: Windows 10+, macOS 10.15+, or Linux
+
+### Recommended
+- **RAM**: 16GB+ for better performance
+- **Storage**: SSD for faster model loading
+- **GPU**: Optional but improves inference speed
+- **Network**: For initial model downloads
+
+### Mobile/Low-Resource Devices
+- Consider using smaller models for better performance
+- Web interface works on tablets and smartphones
+- Progressive Web App (PWA) support planned
+
+---
+
+**Remember**: This tool provides general information only. Always consult with a qualified attorney for legal advice specific to your situation.
