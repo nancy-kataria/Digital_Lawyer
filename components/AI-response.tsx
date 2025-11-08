@@ -1,15 +1,68 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { FileDown } from 'lucide-react';
+import { Button } from '@/components/UI/Button';
+import { generatePDFFromMarkdown } from '@/lib/pdf-generator';
 
 interface AIResponseProps {
   content: string;
   className?: string;
+  showPDFButton?: boolean;
 }
 
-export function AIResponse({ content, className }: AIResponseProps) {
+export function AIResponse({ content, className, showPDFButton = true }: AIResponseProps) {
+  // Detect if content looks like a document (has structure, headers, multiple paragraphs)
+  const isDocument = () => {
+    const lines = content.split('\n').filter(line => line.trim());
+    const hasHeaders = /^#{1,3}\s+/.test(content);
+    const hasMultipleParagraphs = lines.length > 10;
+    const hasLegalKeywords = /\b(agreement|contract|terms|conditions|party|parties|whereas|hereby|clause|section)\b/i.test(content);
+    
+    // Show PDF button if:
+    // 1. Has headers AND multiple paragraphs (structured document)
+    // 2. OR has legal keywords AND sufficient content (contract/legal doc)
+    return (hasHeaders && hasMultipleParagraphs) || (hasLegalKeywords && lines.length > 8);
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      // Extract title from first line or use default
+      const firstLine = content.split('\n')[0];
+      const title = firstLine.replace(/^#+\s*/, '').trim() || 'Legal Document';
+      
+      // Generate short filename
+      const shortTitle = title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]+/g, '')
+        .split(/\s+/)
+        .slice(0, 4) // Take only first 4 words
+        .join('-');
+      const filename = `${shortTitle || 'legal-document'}.pdf`;
+      
+      await generatePDFFromMarkdown(title, content, filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+    
   return (
     <div className={cn("max-w-none", className)}>
+      {/* PDF Download Button */}
+      {showPDFButton && isDocument() && (
+        <div className="flex justify-end mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2"
+          >
+            <FileDown className="h-4 w-4" />
+            Download as PDF
+          </Button>
+        </div>
+      )}
       {/* Formatting for AI responses */}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
