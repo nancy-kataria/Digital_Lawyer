@@ -1,4 +1,4 @@
-export type ModelProvider = 'ollama-local';
+export type ModelProvider = 'ollama-local' | 'gemini';
 
 export interface ModelConfig {
   provider: ModelProvider;
@@ -21,6 +21,10 @@ export function getModelConfig(){
 
 export function isProviderConfigured(config: ModelConfig): boolean {
   if (config.provider === 'ollama-local') {
+    return true;
+  }
+  
+  if (config.provider === 'gemini') {
     return true;
   }
   
