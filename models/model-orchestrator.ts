@@ -5,6 +5,7 @@ import {
   ModelMessage,
 } from "@/lib/model-providers/base-provider";
 import { OllamaProvider } from "@/lib/model-providers/ollama-provider";
+import { GeminiProvider } from "@/lib/model-providers/mock-provider";
 
 export interface ModelResponse {
   success: boolean;
@@ -25,8 +26,33 @@ async function getProvider(): Promise<BaseModelProvider> {
       JSON.stringify(config, null, 2)
     );
 
-    currentProvider = new OllamaProvider(config);
-    console.log("Orchestrator: Provider created:", currentProvider.name);
+    // Try Ollama first
+    const ollamaProvider = new OllamaProvider(config);
+    const availability = await ollamaProvider.checkAvailability();
+
+    if (availability.textModel && availability.visionModel) {
+      console.log("Orchestrator: Using Ollama provider (all models available)");
+      currentProvider = ollamaProvider;
+    } else {
+      console.log("Orchestrator: Ollama unavailable, falling back to Gemini");
+      console.log("Ollama errors:", availability.errors);
+
+      // Use Gemini only (Ollama commented out)
+      const geminiConfig = {
+        provider: 'gemini' as const,
+        textModel: 'gemini-2.0-flash-exp',
+        visionModel: 'gemini-2.0-flash-exp',
+        description: 'Google Gemini 2.5 Pro'
+      };
+
+      const apiKey = process.env.GEMINI_API_KEY || '';
+      if (!apiKey) {
+        console.warn("Warning: GEMINI_API_KEY not set. Set it in environment variables.");
+      }
+
+      currentProvider = new GeminiProvider(geminiConfig, apiKey);
+      console.log("Orchestrator: Provider created:", currentProvider.name);
+    }
   }
   return currentProvider;
 }
