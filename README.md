@@ -113,6 +113,30 @@ curl -X POST http://localhost:3000/api/chat \
 - **Capabilities**:
   - Contract and legal document OCR
   - Image-based evidence analysis
+ 
+### Model Performance
+- **Response Time**: 2-10 seconds (depending on hardware)
+- **Quality**: Professional-grade legal assistance
+- **Languages**: Primarily English (expandable)
+- **Accuracy**: Continuously improving with model updates
+
+## Usage Guide
+
+### Basic Legal Consultation
+1. Type your legal question in the chat interface
+2. Get AI-powered legal guidance and advice
+3. Ask follow-up questions for clarification
+
+### Document Analysis
+1. Upload legal documents, contracts, or images
+2. Ask questions about the uploaded content
+3. Get detailed analysis and interpretation
+
+### Example Queries
+- "What should I know about signing this employment contract?"
+- "Can you analyze this lease agreement for any red flags?"
+- "What are my rights in this situation?"
+- "Help me understand this legal document"
 
 ## System Requirements
 
