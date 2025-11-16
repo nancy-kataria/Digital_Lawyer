@@ -4,7 +4,11 @@ import { Button } from "@/components/UI/Button"
 import { Card, CardContent } from "@/components/UI/Card"
 import { ArrowLeft, Camera, AlertTriangle, Phone } from "lucide-react"
 
-export function IncidentCapture() {
+interface IncidentCaptureProps {
+  onBack: () => void
+}
+
+export function IncidentCapture({ onBack }: IncidentCaptureProps) {
   const callEmergency = () => {
     window.location.href = "tel:911"
   }
@@ -16,7 +20,7 @@ export function IncidentCapture() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive">
