@@ -1,13 +1,24 @@
 "use client"
 
 import { Button } from "@/components/UI/Button"
-import { Card, CardContent } from "@/components/UI/Card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/UI/Card"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Camera, AlertTriangle, Phone } from "lucide-react"
+import { ArrowLeft, Camera, Mic, AlertTriangle, Phone, Square } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { cn } from "@/lib/utils"
 
 interface IncidentCaptureProps {
   onBack: () => void
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+  resultIndex: number
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
 }
 
 interface EmergencyContact {
@@ -90,6 +101,65 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
       }
     }
   }, [toast])
+
+  // Initialize speech recognition
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition()
+
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = "en-US"
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = ""
+        let interimTranscript = ""
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript
+          } else {
+            interimTranscript += transcript
+          }
+        }
+
+        if (finalTranscript) {
+          handleUserSpeech(finalTranscript)
+        }
+        setCurrentSubtitle(interimTranscript)
+      }
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error("Speech recognition error:", event.error)
+        toast({
+          title: "Speech Recognition Error",
+          description: "Unable to process speech. Please try again.",
+          variant: "destructive",
+        })
+      }
+
+      recognitionRef.current = recognition
+    } else {
+      toast({
+        title: "Speech Recognition Unavailable",
+        description: "Your browser doesn't support speech recognition. You can still record video.",
+        variant: "destructive",
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Load emergency contacts
+  useEffect(() => {
+    const savedContacts = localStorage.getItem("digital-lawyer-emergency-contacts")
+    if (savedContacts) {
+      setEmergencyContacts(JSON.parse(savedContacts))
+    }
+  }, [])
 
   const addToTranscript = (text: string, speaker: "user" | "ai") => {
     const entry: TranscriptEntry = {
@@ -286,7 +356,7 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
           <Card>
             <CardContent className="p-0">
               <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                <video
+                <video 
                   ref={videoRef} 
                   autoPlay 
                   muted 
@@ -299,9 +369,94 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
                     willChange: 'transform'
                   }}
                 />
+
+                {/* Recording Indicator */}
+                {isRecording && (
+                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-destructive text-destructive-foreground px-3 py-1 rounded-full">
+                    <div className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">RECORDING</span>
+                  </div>
+                )}
+
+                {/* Listening Indicator */}
+                {isListening && (
+                  <div className="absolute top-4 right-4 flex items-center gap-2 bg-accent text-accent-foreground px-3 py-1 rounded-full">
+                    <Mic className="w-4 h-4" />
+                    <span className="text-sm font-medium">LISTENING</span>
+                  </div>
+                )}
+
+                {/* Current Subtitle */}
+                {currentSubtitle && (
+                  <div className="absolute bottom-4 left-4 right-4 bg-black/80 text-white p-3 rounded-lg">
+                    <p className="text-sm">{currentSubtitle}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Controls */}
+          <div className="flex justify-center gap-4">
+            {!isRecording ? (
+              <Button onClick={startRecording} size="lg" className="bg-destructive hover:bg-destructive/90">
+                <Camera className="h-5 w-5 mr-2" />
+                Start Recording
+              </Button>
+            ) : (
+              <Button onClick={stopRecording} size="lg" variant="outline">
+                <Square className="h-5 w-5 mr-2" />
+                Stop Recording
+              </Button>
+            )}
+          </div>
+
+          {/* Transcript */}
+          {transcript.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-accent" />
+                  Incident Transcript
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {transcript.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className={cn("flex gap-3", entry.speaker === "user" ? "justify-end" : "justify-start")}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-lg px-4 py-2",
+                          entry.speaker === "user" ? "bg-accent text-accent-foreground" : "bg-muted",
+                        )}
+                      >
+                        <p className="text-sm">{entry.text}</p>
+                        <div className="text-xs opacity-50 mt-1">{entry.timestamp.toLocaleTimeString()}</div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {isProcessing && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted rounded-lg px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-accent rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-100"></div>
+                            <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-200"></div>
+                          </div>
+                          <span className="text-sm text-muted-foreground">Processing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Instructions */}
           <Card className="bg-accent/5 border-accent/20">
