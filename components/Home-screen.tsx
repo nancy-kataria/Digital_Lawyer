@@ -101,6 +101,16 @@ export function HomeScreen() {
             </div>
           </div>
 
+          {/* Get Yours Today Button */}
+          <div className="flex justify-center">
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-bold text-lg px-8 py-6 rounded-full shadow-2xl hover:shadow-accent/50 transition-all duration-300 hover:scale-105 animate-pulse hover:animate-none"
+            >
+              Get Yours Today
+            </Button>
+          </div>
+
           {/* Action Cards */}
           <div className="grid gap-8 md:grid-cols-2">
             <Card
