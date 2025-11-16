@@ -2,16 +2,251 @@
 
 import { Button } from "@/components/UI/Button"
 import { Card, CardContent } from "@/components/UI/Card"
+import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, Camera, AlertTriangle, Phone } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 interface IncidentCaptureProps {
   onBack: () => void
 }
 
+interface EmergencyContact {
+  id: string
+  name: string
+  phone: string
+  email: string
+  relationship: string
+}
+
+interface TranscriptEntry {
+  id: string
+  text: string
+  speaker: "user" | "ai"
+  timestamp: Date
+}
+
 export function IncidentCapture({ onBack }: IncidentCaptureProps) {
+  const [isRecording, setIsRecording] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
+  const [currentSubtitle, setCurrentSubtitle] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([])
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    let currentStream: MediaStream | null = null
+
+    const initializeMedia = async () => {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 30, max: 60 },
+            aspectRatio: 16/9
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 44100
+          },
+        })
+
+        currentStream = mediaStream
+        setStream(mediaStream)
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream
+          // Waiting for metadata to load before setting up video
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(console.error)
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error accessing media devices:", error)
+        toast({
+          title: "Camera Access Error",
+          description: "Unable to access camera and microphone. Please check permissions.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    initializeMedia()
+
+    return () => {
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop())
+      }
+    }
+  }, [toast])
+
+  const addToTranscript = (text: string, speaker: "user" | "ai") => {
+    const entry: TranscriptEntry = {
+      id: Date.now().toString(),
+      text,
+      speaker,
+      timestamp: new Date(),
+    }
+    setTranscript((prev) => [...prev, entry])
+  }
+
+  const speakText = (text: string) => {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.9
+      utterance.pitch = 1
+      utterance.volume = 0.8
+      speechSynthesis.speak(utterance)
+    }
+  }
+
+  const processIncidentSpeech = async (input: string): Promise<string> => {
+    // Simulate AI processing - in production, this would call HuggingFace API
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    const lowerInput = input.toLowerCase()
+
+    if (lowerInput.includes("accident") || lowerInput.includes("crash")) {
+      return "I understand there's been an accident. First, are you or anyone else injured? If so, call 911 immediately. If everyone is safe, document the scene, exchange information with other parties, and contact your insurance company."
+    }
+
+    if (lowerInput.includes("injured") || lowerInput.includes("hurt")) {
+      return "If someone is injured, call 911 right away. Do not move injured persons unless they're in immediate danger. I'm notifying your emergency contacts now."
+    }
+
+    if (lowerInput.includes("fire") || lowerInput.includes("smoke")) {
+      return "If there's a fire, evacuate immediately and call 911. Get to a safe distance and wait for emergency services. Do not re-enter the area."
+    }
+
+    if (lowerInput.includes("theft") || lowerInput.includes("stolen")) {
+      return "For theft incidents, ensure your safety first. If the perpetrator is gone, document what was stolen and call the police to file a report. Take photos of the scene if safe to do so."
+    }
+
+    return "I'm documenting this incident. Please continue describing what happened. If this is an emergency requiring immediate assistance, call 911 now."
+  }
+
+  const startRecording = async () => {
+    if (!stream) return
+
+    try {
+      const recorder = new MediaRecorder(stream)
+      const chunks: Blob[] = []
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data)
+        }
+      }
+
+      recorder.onstop = () => {
+        console.log('Recording stopped, chunks:', chunks.length)
+      }
+
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+
+      // Start speech recognition
+      if (recognitionRef.current) {
+        recognitionRef.current.start()
+        setIsListening(true)
+      }
+
+      const greeting = "I'm here to help you with this incident. Please describe what's happening."
+      addToTranscript(greeting, "ai")
+      speakText(greeting)
+    } catch (error) {
+      console.error("Error starting recording:", error)
+      toast({
+        title: "Recording Error",
+        description: "Unable to start recording. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const notifyEmergencyContacts = () => {
+    if (emergencyContacts.length > 0) {
+      const contactNames = emergencyContacts.map((c) => c.name).join(", ")
+      toast({
+        title: "Emergency Contacts Notified",
+        description: `${contactNames} ${emergencyContacts.length === 1 ? "has" : "have"} been automatically notified of this incident.`,
+        duration: 5000,
+      })
+
+      emergencyContacts.forEach((contact) => {
+        console.log(`Notifying ${contact.name} at ${contact.phone}`)
+        // Simulate SMS/call notification
+      })
+    } else {
+      toast({
+        title: "No Emergency Contacts",
+        description: "Add emergency contacts in settings to enable automatic notifications.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop()
+    }
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    }
+
+    setIsRecording(false)
+    setCurrentSubtitle("")
+  }
+
+  const handleUserSpeech = async (speechText: string) => {
+    addToTranscript(speechText, "user")
+    setIsProcessing(true)
+
+    try {
+      const aiResponse = await processIncidentSpeech(speechText)
+      addToTranscript(aiResponse, "ai")
+      speakText(aiResponse)
+
+      // Check if emergency response is needed
+      if (
+        speechText.toLowerCase().includes("accident") ||
+        speechText.toLowerCase().includes("emergency") ||
+        speechText.toLowerCase().includes("help") ||
+        speechText.toLowerCase().includes("injured")
+      ) {
+        notifyEmergencyContacts()
+      }
+    } catch (error) {
+      console.error("Error processing speech:", error)
+      const errorResponse =
+        "I'm having trouble processing that. Please repeat or call emergency services if this is urgent."
+      addToTranscript(errorResponse, "ai")
+      speakText(errorResponse)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   const callEmergency = () => {
     window.location.href = "tel:911"
   }
+
+  
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -52,6 +287,7 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
             <CardContent className="p-0">
               <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 <video
+                  ref={videoRef} 
                   autoPlay 
                   muted 
                   playsInline 
