@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/UI/Button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/UI/Card"
@@ -9,6 +9,22 @@ import { ChatInterface } from "@/components/Chat-interface"
 
 export function HomeScreen() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "incident" | "contacts">("home")
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isInstallable, setIsInstallable] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setIsInstallable(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handler)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+    }
+  }, [])
 
   const handleChatClick = () => {
     setCurrentView("chat")
@@ -24,6 +40,20 @@ export function HomeScreen() {
 
   const handleBackToHome = () => {
     setCurrentView("home")
+  }
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      return
+    }
+
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null)
+      setIsInstallable(false)
+    }
   }
 
   if (currentView === "chat") {
@@ -106,8 +136,10 @@ export function HomeScreen() {
             <Button 
               size="lg" 
               className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-bold text-lg px-8 py-6 rounded-full shadow-2xl hover:shadow-accent/50 transition-all duration-300 hover:scale-105 animate-pulse hover:animate-none"
+              onClick={handleInstallClick}
+              disabled={!isInstallable}
             >
-              Get Yours Today
+              {isInstallable ? "Get Yours Today" : "Already Installed"}
             </Button>
           </div>
 
