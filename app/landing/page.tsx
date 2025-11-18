@@ -4,30 +4,8 @@ import { Scale, Shield, Users, MessageSquare, Camera} from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/UI/Button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/UI/Card"
-import { useState } from "react"
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
 
 export default function LandingPage() {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-    const [isInstallable, setIsInstallable] = useState(false)
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return
-    }
-
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null)
-      setIsInstallable(false)
-    }
-  }
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -96,14 +74,18 @@ export default function LandingPage() {
 
           {/* Get Yours Today Button */}
           <div className="flex justify-center">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-bold text-lg px-8 py-6 rounded-full shadow-2xl hover:shadow-accent/50 transition-all duration-300 hover:scale-105 animate-pulse hover:animate-none"
-              onClick={handleInstallClick}
-              disabled={!isInstallable}
+            <a 
+              href="https://github.com/nancy-kataria/digital-lawyer/releases"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {isInstallable ? "Get Yours Today" : "Already Installed"}
-            </Button>
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-bold text-lg px-8 py-6 rounded-full shadow-2xl hover:shadow-accent/50 transition-all duration-300 hover:scale-105 animate-pulse hover:animate-none"
+              >
+                Get Yours Today
+              </Button>
+            </a>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2">
