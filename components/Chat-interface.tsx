@@ -9,6 +9,51 @@ import { Input } from "@/components/UI/Input"
 import { ScrollArea } from "@/components/UI/Scroll-Area"
 import { generateLegalResponse } from "@/models/generate-response"
 
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+  resultIndex: number
+}
+
+interface SpeechRecognitionResultList {
+  length: number
+  item(index: number): SpeechRecognitionResult
+  [index: number]: SpeechRecognitionResult
+}
+
+interface SpeechRecognitionResult {
+  length: number
+  item(index: number): SpeechRecognitionAlternative
+  [index: number]: SpeechRecognitionAlternative
+  isFinal: boolean
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onend: (() => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  start(): void
+  stop(): void
+  abort(): void
+}
+
+interface WindowWithSpeechRecognition {
+  SpeechRecognition?: new() => SpeechRecognition
+  webkitSpeechRecognition?: new() => SpeechRecognition
+  speechSynthesis?: SpeechSynthesis
+}
+
 interface Message {
   id: string;
   content: string;
@@ -53,17 +98,17 @@ export function ChatInterface({ onBack }: ChatInterfaceProps) {
     if (typeof window !== "undefined") {
       // Get the Speech Recognition API - try standard first, then webkit prefixed version for Safari
       // https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      if (SpeechRecognition) {
+      const SpeechRecognitionAPI = (window as WindowWithSpeechRecognition).SpeechRecognition || (window as WindowWithSpeechRecognition).webkitSpeechRecognition
+      if (SpeechRecognitionAPI) {
         // Creating a new speech recognition instance
-        const recognitionInstance = new SpeechRecognition()
+        const recognitionInstance = new SpeechRecognitionAPI() as SpeechRecognition
 
         // speech recognition settings
         recognitionInstance.continuous = true //Keep listening until manually stopped
         recognitionInstance.interimResults = true // Return partial results as user speak
         recognitionInstance.lang = "en-US" // Set language to English (US)
 
-        recognitionInstance.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
           let finalTranscript = ""
           let interimTranscript = ""
 
@@ -92,7 +137,7 @@ export function ChatInterface({ onBack }: ChatInterfaceProps) {
           setRecordingText("")
         }
 
-        recognitionInstance.onerror = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error("Speech recognition error:", event.error)
           setIsRecording(false)
           setRecordingText("")

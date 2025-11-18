@@ -8,16 +8,16 @@ async function getPdfMake() {
   }
   
   const pdfMakeModule = await import('pdfmake/build/pdfmake');
-  const pdfFontsModule = await import('pdfmake/build/vfs_fonts');
+  const pdfFontsModule: any = await import('pdfmake/build/vfs_fonts');
   
   // Access the default export properly
   pdfMakeInstance = pdfMakeModule.default || pdfMakeModule;
-  const pdfFonts = pdfFontsModule.default || pdfFontsModule;
+  const pdfFonts: any = pdfFontsModule.default || pdfFontsModule;
   
   // Set vfs fonts
-  if (pdfFonts.pdfMake && pdfFonts.pdfMake.vfs) {
+  if (pdfFonts && pdfFonts.pdfMake && pdfFonts.pdfMake.vfs) {
     pdfMakeInstance.vfs = pdfFonts.pdfMake.vfs;
-  } else if (pdfFonts.vfs) {
+  } else if (pdfFonts && pdfFonts.vfs) {
     pdfMakeInstance.vfs = pdfFonts.vfs;
   }
   
