@@ -1,11 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
 import Image from "next/image"
 import { Button } from "@/components/UI/Button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/UI/Card"
@@ -14,22 +10,6 @@ import { ChatInterface } from "@/components/Chat-interface"
 
 export function HomeScreen() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "incident" | "contacts">("home")
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [isInstallable, setIsInstallable] = useState(false)
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setIsInstallable(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handler)
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler)
-    }
-  }, [])
 
   const handleChatClick = () => {
     setCurrentView("chat")
@@ -45,20 +25,6 @@ export function HomeScreen() {
 
   const handleBackToHome = () => {
     setCurrentView("home")
-  }
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return
-    }
-
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null)
-      setIsInstallable(false)
-    }
   }
 
   if (currentView === "chat") {
@@ -134,18 +100,6 @@ export function HomeScreen() {
                 <span>24/7 Available</span>
               </div>
             </div>
-          </div>
-
-          {/* Get Yours Today Button */}
-          <div className="flex justify-center">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-bold text-lg px-8 py-6 rounded-full shadow-2xl hover:shadow-accent/50 transition-all duration-300 hover:scale-105 animate-pulse hover:animate-none"
-              onClick={handleInstallClick}
-              disabled={!isInstallable}
-            >
-              {isInstallable ? "Get Yours Today" : "Already Installed"}
-            </Button>
           </div>
 
           {/* Action Cards */}
