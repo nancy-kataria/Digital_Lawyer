@@ -1,0 +1,15 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/landing"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/((?!landing|_next|favicon.ico|lawnorder.jpeg).*)",
+      "destination": "/landing",
+      "permanent": false
+    }
+  ]
+}
