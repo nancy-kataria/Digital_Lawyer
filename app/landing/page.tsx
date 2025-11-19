@@ -75,7 +75,7 @@ export default function LandingPage() {
           {/* Get Yours Today Button */}
           <div className="flex justify-center">
             <a 
-              href="https://github.com/nancy-kataria/digital-lawyer/releases"
+              href="https://github.com/nancy-kataria/Digital_Lawyer/releases"
               target="_blank"
               rel="noopener noreferrer"
             >
