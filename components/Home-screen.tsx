@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MessageSquare, Camera, Scale, Shield, Users, Settings, Phone } from "lucide-react"
 import { ChatInterface } from "@/components/Chat-interface"
 import { EmergencyContacts } from "@/components/Emergency-contacts"
+import { IncidentCapture } from "@/components/Incident-capture"
 
 export function HomeScreen() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "incident" | "contacts">("home")
@@ -34,6 +35,10 @@ export function HomeScreen() {
 
   if (currentView === "contacts"){
     return <EmergencyContacts onBack={handleBackToHome} />
+  }
+
+  if (currentView === "incident"){
+    return <IncidentCapture onBack={handleBackToHome} />
   }
 
   return (
