@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, Camera, Mic, AlertTriangle, Phone, Square } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { GeminiLiveService } from "@/lib/gemini-live-service"
 
 interface IncidentCaptureProps {
   onBack: () => void
@@ -49,6 +50,7 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
+  const geminiServiceRef = useRef<GeminiLiveService | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -182,34 +184,60 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
   }
 
   const processIncidentSpeech = async (input: string): Promise<string> => {
-    // Simulate AI processing - in production, this would call HuggingFace API
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const lowerInput = input.toLowerCase()
-
-    if (lowerInput.includes("accident") || lowerInput.includes("crash")) {
-      return "I understand there's been an accident. First, are you or anyone else injured? If so, call 911 immediately. If everyone is safe, document the scene, exchange information with other parties, and contact your insurance company."
+    // Using Gemini 2.0 Flash for real-time incident analysis with video context
+    if (!geminiServiceRef.current || !videoRef.current) {
+      return "I'm having trouble processing that. Please ensure the camera is working."
     }
 
-    if (lowerInput.includes("injured") || lowerInput.includes("hurt")) {
-      return "If someone is injured, call 911 right away. Do not move injured persons unless they're in immediate danger. I'm notifying your emergency contacts now."
+    try {
+      const response = await geminiServiceRef.current.processWithMultimodal(
+        videoRef.current,
+        input
+      )
+      return response
+    } catch (error) {
+      console.error("Gemini processing error:", error)
+      return "I'm having trouble analyzing the situation. Please repeat or call emergency services if this is urgent."
     }
-
-    if (lowerInput.includes("fire") || lowerInput.includes("smoke")) {
-      return "If there's a fire, evacuate immediately and call 911. Get to a safe distance and wait for emergency services. Do not re-enter the area."
-    }
-
-    if (lowerInput.includes("theft") || lowerInput.includes("stolen")) {
-      return "For theft incidents, ensure your safety first. If the perpetrator is gone, document what was stolen and call the police to file a report. Take photos of the scene if safe to do so."
-    }
-
-    return "I'm documenting this incident. Please continue describing what happened. If this is an emergency requiring immediate assistance, call 911 now."
   }
 
   const startRecording = async () => {
     if (!stream) return
 
     try {
+      // Initialize Gemini Live Service
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+      if (!apiKey) {
+        toast({
+          title: "Configuration Error",
+          description: "Gemini API key not found. Please check your environment configuration.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      geminiServiceRef.current = new GeminiLiveService({
+        apiKey,
+        onResponse: (text) => {
+          console.log("Gemini response:", text)
+        },
+        onError: (error) => {
+          console.error("Gemini error:", error)
+          toast({
+            title: "AI Processing Error",
+            description: "Unable to process with Gemini. Check console for details.",
+            variant: "destructive",
+          })
+        },
+      })
+
+      await geminiServiceRef.current.startSession()
+
+      // Start periodic frame capture for visual context
+      if (videoRef.current) {
+        geminiServiceRef.current.startPeriodicFrameCapture(videoRef.current, 3000)
+      }
+
       const recorder = new MediaRecorder(stream)
       const chunks: Blob[] = []
 
@@ -277,6 +305,12 @@ export function IncidentCapture({ onBack }: IncidentCaptureProps) {
     if (recognitionRef.current) {
       recognitionRef.current.stop()
       setIsListening(false)
+    }
+
+    // Stop Gemini service
+    if (geminiServiceRef.current) {
+      geminiServiceRef.current.stopSession()
+      geminiServiceRef.current = null
     }
 
     setIsRecording(false)
